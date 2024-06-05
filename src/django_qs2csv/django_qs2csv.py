@@ -108,11 +108,15 @@ def queryset_to_csv(
     if not values:
         qs = qs.values(*fields)
 
+    # Check if the filename already includes the correct file type
+    if filename[-4:] != '.csv':
+        filename += ".csv"
+
     # Create the response
     response = HttpResponse(
         headers={
             "Content-Type": "text/csv",
-            "Content-Disposition": f"attachment; filename={filename}.csv",
+            "Content-Disposition": f"attachment; filename={filename}",
         },
     )
 
