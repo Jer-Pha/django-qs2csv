@@ -79,6 +79,10 @@ If the QuerySet was already evaluated before being passed to `queryset_to_csv` t
 
 If your QuerySet uses only() / defer() then you must include those same fields in the `only` / `defer` parameters when calling `queryset_to_csv`. The function transforms all QuerySets into a list of dicts using values(), which is incompatible with only() and defer().
 
+`ForeignKey` and `OneToOneField` will always return the primary key, because the function uses `values()`.
+
+`ManyToManyField` is not supported.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
