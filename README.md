@@ -61,7 +61,7 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 
 ### Options
 
-`header` `:bool` - Include a header row with field names. **Default: True
+`header` `:bool` - Include a header row with field names. **Default: True**
 
 `filename` `:str` - The name of the exported CSV file. You do not need to include .csv, it will be added once the filename is evaluated. File names can not end in a period, include the symbols (< > : " / \\ | ? *), or be longer than 251 characters (255 w/ ".csv"). **Default: "export"**
 
