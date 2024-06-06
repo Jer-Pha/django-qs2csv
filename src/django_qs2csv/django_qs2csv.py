@@ -1,8 +1,6 @@
 from django.http import HttpResponse
 from django.db.models import QuerySet
 
-SYMBOLS = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
-
 
 def error_handler(
     qs: QuerySet,
@@ -20,6 +18,8 @@ def error_handler(
     # Ensure `filename` is properly formatted
     filename = filename.strip()
     if filename != "export":
+        SYMBOLS = ("<", ">", ":", '"', "/", "\\", "|", "?", "*")
+
         if len(filename) > 251 or not filename:
             raise ValueError(
                 "`filename` must be between 1 and 251 characters. Current"
@@ -57,27 +57,39 @@ def get_fields(
     fields: list[object],
     only: list[str],
     defer: list[str],
-) -> list[str]:
+    verbose: bool,
+) -> list[list[str]]:
     """Determines which fields to include in the response."""
+    # Remove ManyToManyField (unsupported)
     if only:
         # `defer` overrides `only`
         only = [f for f in only if f not in defer]
-        fields = [f for f in fields if f.name in only]
+        fields = [f for f in fields if f.name in only and not f.many_to_many]
     elif defer:
-        fields = [f for f in fields if f.name not in defer]
+        fields = [
+            f for f in fields if f.name not in defer and not f.many_to_many
+        ]
+    else:
+        fields = [f for f in fields if not f.many_to_many]
 
-    # Remove unsupported fields and convert to list of strings
-    return [
-        f.name for f in fields if f.get_internal_type() != "ManyToManyField"
-    ]
+    # Convert fields to field name strings
+    return (
+        (
+            [f.name for f in fields],
+            [f.verbose_name for f in fields],
+        )
+        if verbose
+        else ([f.name for f in fields],)
+    )
 
 
 def queryset_to_csv(
     qs: QuerySet,
-    header: bool = True,
+    header: bool = False,
     filename: str = "export.csv",
     only: list[str] = [],
     defer: list[str] = [],
+    verbose: bool = True,
     values: bool = False,
     pd: bool = False,
 ) -> HttpResponse:
@@ -91,8 +103,8 @@ def queryset_to_csv(
     ----------
     qs
         The QuerySet that will be converted to a CSV file.
-    header : default=True
-        Keep/remove a header row of field names in the response.
+    header : default=False
+        Add/remove a header row of field names in the response.
     filename : default="export.csv"
         The file name for the exported file. Does not need .csv suffix.
     only : default=[]
@@ -107,6 +119,8 @@ def queryset_to_csv(
 
     Other Parameters
     ----------
+    verbose : default=True
+        Use the verbose_name from the selected fields.
     values : default=False
         Use the QuerySet as-is, must use values(). See ``Notes``.
     pd : default=False
@@ -159,8 +173,10 @@ def queryset_to_csv(
     # Check for errors
     error_handler(qs, values, filename)
 
-    # Specify which fields need to be used with values()
-    fields = get_fields(qs.model._meta.local_fields, only, defer)
+    # Specify the fields for values() and the header row
+    fields = get_fields(qs.model._meta.local_fields, only, defer, verbose)
+    headers = fields[-1] if header else []
+    fields = fields[0]
 
     # Convert QuerySet to list of dicts
     if not values:
@@ -179,20 +195,25 @@ def queryset_to_csv(
     )
 
     # Build csv file
-    if pd:
-        from pandas import DataFrame
-
-        DataFrame(qs).to_csv(response, header=header, index=False)
-    else:
+    if not pd:
         from csv import DictWriter
 
-        csv_writer = (
-            DictWriter(response, qs[0].keys())
-            if qs
-            else DictWriter(response, {}.keys())
-        )
-        if header:
+        csv_writer = DictWriter(response, fields)
+        if header and verbose:
+            csv_writer.writerow(dict(zip(fields, headers)))
+        elif header:
             csv_writer.writeheader()
         csv_writer.writerows(qs)
+    else:
+        from pandas import DataFrame
+
+        if header and verbose:
+            from csv import writer
+
+            csv_writer = writer(response)
+            csv_writer.writerow(headers)
+            DataFrame(qs).to_csv(response, header=False, index=False, mode="a")
+        else:
+            DataFrame(qs).to_csv(response, header=header, index=False)
 
     return response
