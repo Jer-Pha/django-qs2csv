@@ -81,7 +81,7 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 
 ### Limitations
 
-If the QuerySet was already evaluated before being passed to `qs_to_csv` then it will be re-evaluated by the function. Depending on the size of the QuerySet and the database setup, this may add a noticeable delay. It is recommended to monitor the impact of database queries using `django.db.connection.queries` or [django-debug-toolbar](https://django-debug-toolbar.readthedocs.io/en/latest/index.html) during development. If the QuerySet must be evaluated before the function is called, it would be most efficient to use values() with the QuerySet (if possible) then pass `values=True` to `qs_to_csv`.
+If the QuerySet was already evaluated before being passed to `qs_to_csv` then it will be re-evaluated by the function. Depending on the size of the QuerySet, complexity of the query and the database setup, this may add a noticeable delay. It is recommended to monitor the impact of database queries using `django.db.connection.queries` or [django-debug-toolbar](https://django-debug-toolbar.readthedocs.io/en/latest/index.html) during development. If the QuerySet must be evaluated before the function is called, it would be most efficient to use values() with the QuerySet (if possible) then pass `values=True` to `qs_to_csv`.
 
 If your QuerySet uses only() / defer() then you must include those same fields in the `only` / `defer` parameters when calling `qs_to_csv`. The function transforms all QuerySets into a list of dicts using values(), which is incompatible with only() and defer().
 
