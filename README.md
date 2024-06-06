@@ -65,7 +65,7 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 
 ### Parameters
 
-`qs : QuerySet` - The QuerySet to be exported as a CSV file. This can be passed as QuerySet\[object], QuerySet\[dict] (values()), or QuerySet\[list\[list]] (values_list()). See the note in the [Limitations](#limitations) about QuerySet evaluation. **Required**
+`qs : QuerySet` - **Required**. The QuerySet to be exported as a CSV file. This can be passed as QuerySet\[object], QuerySet\[dict] (values()), or QuerySet\[list\[list]] (values_list()). See the note in the [Limitations](#limitations) about QuerySet evaluation.
 
 `header : bool` - Include a header row with field names. **Default: False**
 
