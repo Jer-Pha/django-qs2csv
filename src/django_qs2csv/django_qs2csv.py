@@ -9,9 +9,7 @@ def error_handler(
     values: bool,
     filename: str,
 ) -> None:
-    """
-    Documentation needed.
-    """
+    """Checks for errors/warnings in `queryset_to_csv`."""
     # Ensure `values` is only being used with a QuerySet with .values()
     if values and not issubclass(qs[0].__class__, dict):
         raise TypeError(
@@ -59,9 +57,7 @@ def get_fields(
     only: list[str],
     defer: list[str],
 ) -> list[str]:
-    """
-    Documentation needed.
-    """
+    """Determines which fields to include in the response."""
     if only:
         # `defer` overrides `only`
         only = [f for f in only if f not in defer]
@@ -78,25 +74,85 @@ def get_fields(
 def queryset_to_csv(
     qs: QuerySet,
     header: bool = True,
-    values: bool = False,
-    pd: bool = False,
+    filename: str = "export.csv",
     only: list[str] = [],
     defer: list[str] = [],
-    filename: str = "export",
+    values: bool = False,
+    pd: bool = False,
 ) -> HttpResponse:
-    """
-    Documentation needed.
+    """Converts a QuerySet into a CSV file as an HttpResponse.
+
+    This function takes a Django QuerySet and converts it into a CSV
+    file through a django.http.HttpResponse object. The function can
+    take several ``Parameters`` that will affect the exported data.
+
+    Parameters
+    ----------
+    qs
+        The QuerySet that will be converted to a CSV file.
+    header : default=True
+        Keep/remove a header row of field names in the response.
+    filename : default="export.csv"
+        The file name for the exported file. Does not need .csv suffix.
+    only : default=[]
+        List of specific fields to include in the response.
+    defer : default=[]
+        List of specific fields not to include in the response
+
+    Returns
+    -------
+    HttpResponse
+        Includes the Content-Type and Content-Disposition headers.
+
+    Other Parameters
+    ----------
+    values : default=False
+        Use the QuerySet as-is, must use values(). See ``Notes``.
+    pd : default=False
+        Use pandas.DataFrame().to_csv() instead of csv.DictWriter().
+
+
+    Raises
+    ------
+    ValueError
+        If `filename` is not formatted correctly.
+    TypeError
+        If `values=True` and the QuerySet did not call values().
+
+    Warns
+    -----
+    ResourceWarning
+        If the QuerySet will be evaluated more than once.
+
+    See Also
+    --------
+    error_handler : Checks for errors/warnings in this function.
+    get_fields : Determines which fields to include in the response.
+
+    Notes
+    -----
+    ForeignKey and OneToOneField will always return the primary key,
+    because the function uses values().
+
+    ManyToManyField is not supported.
 
     `headers` includes Content-Type and Content-Disposition. To add
     headers, set the new header as an index key and assign a value to
-    it. e.g. `response = queryset_to_csv(qs)` ->
-    `response['Custom-Header'] = "This is my customer header."
-    To delete a content-header, use `del`, such as:
-    `response = queryset_to_csv(qs)` -> `del response['Content-Type']`
+    it, the same as a dictionary. These headers can also be deleted.
 
-    OneToOneField and ForeignKey fields will show the connected model's
-    primary key, not the __str__ value. This is a limitation of using
-    values().
+    If the QuerySet was already evaluated before being passed to the
+    function then it will be re-evaluated. Depending on the size of the
+    QuerySet and the database setup, this may add a noticeable delay.
+    It is recommended to monitor the impact of database queries using
+    django.db.connection.queries or django-debug-toolbar during
+    development. If the QuerySet must be evaluated before the function
+    is called, it would be most efficient to use values() with the
+    QuerySet (if possible) then pass `values=True`.
+
+    If your QuerySet uses only() / defer() then you must include those
+    same fields in the `only` / `defer` parameters when calling the
+    function. The function transforms all QuerySets into a list of
+    dicts w/ values(), which is incompatible with only() and defer().
     """
     # Check for errors
     error_handler(qs, values, filename)
@@ -134,3 +190,5 @@ def queryset_to_csv(
         csv_writer.writerows(qs)
 
     return response
+
+this = queryset_to_csv(1)
