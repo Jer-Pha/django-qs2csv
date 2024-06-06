@@ -24,7 +24,7 @@ Full
 ```console
 pip install django-qs2csv[pd]
 ```
-Note: this will install [pandas](https://pandas.pydata.org/), which is used with ``queryset_to_csv_pd()``. It is not recommended to install the pandas library unless you will use this function or are already use pandas.
+Note: this will install [pandas](https://pandas.pydata.org/), which is used with ``queryset_to_csv_pd()``. It is not recommended to install the pandas library unless you will use this function or already use pandas. Using ``queryset_to_csv_pd()`` will likely increase the export speed of large QuerySets (2M+ results) and decrease file size for all QuerySets.
 
 ## Usage
 
