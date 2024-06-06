@@ -139,7 +139,8 @@ def queryset_to_csv(
 
     `headers` includes Content-Type and Content-Disposition. To add
     headers, set the new header as an index key and assign a value to
-    it, the same as a dictionary. These headers can also be deleted.
+    it, the same as a dictionary. These headers can also be deleted
+    (not recommended).
 
     If the QuerySet was already evaluated before being passed to the
     function then it will be re-evaluated. Depending on the size of the
