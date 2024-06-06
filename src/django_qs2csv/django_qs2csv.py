@@ -36,6 +36,7 @@ def error_handler(
     # Check if the QuerySet has been evaluated:
     if qs._result_cache is not None:
         from warnings import warn
+
         warning = (
             "The QuerySet was already evaluated before being passed to this"
             " function. This will result in another database hit converting"
@@ -165,7 +166,7 @@ def queryset_to_csv(
         qs = qs.values(*fields)
 
     # Check if the filename already includes the correct file type
-    if filename[-4:] != '.csv':
+    if filename[-4:] != ".csv":
         filename += ".csv"
 
     # Create the response
@@ -179,16 +180,18 @@ def queryset_to_csv(
     # Build csv file
     if pd:
         from pandas import DataFrame
+
         DataFrame(qs).to_csv(response, header=header, index=False)
     else:
         from csv import DictWriter
-        list(qs)  # Force evaluation to prevent multiple queries
-        #                                 vvvvvvvvvvvv
-        csv_writer = DictWriter(response, qs[0].keys())
+
+        csv_writer = (
+            DictWriter(response, qs[0].keys())
+            if qs
+            else DictWriter(response, {}.keys())
+        )
         if header:
             csv_writer.writeheader()
         csv_writer.writerows(qs)
 
     return response
-
-this = queryset_to_csv(1)
