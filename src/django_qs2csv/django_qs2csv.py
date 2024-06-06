@@ -1,12 +1,14 @@
+from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
+
 from django.http import HttpResponse
 from django.db.models import QuerySet
 
 
 def error_handler(
-    qs: QuerySet,
+    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
     values: bool,
     filename: str,
-) -> None:
+) -> NoReturn:
     """Checks for errors/warnings in `queryset_to_csv`."""
     # Ensure `values` is only being used with a QuerySet with .values()
     if values and not issubclass(qs[0].__class__, dict):
@@ -54,11 +56,11 @@ def error_handler(
 
 
 def get_fields(
-    fields: list[object],
-    only: list[str],
-    defer: list[str],
+    fields: List[object],
+    only: List[str],
+    defer: List[str],
     verbose: bool,
-) -> list[list[str]]:
+) -> List[List[str]]:
     """Determines which fields to include in the response."""
     # Remove ManyToManyField (unsupported)
     if only:
@@ -83,15 +85,56 @@ def get_fields(
     )
 
 
-def queryset_to_csv(
-    qs: QuerySet,
+def build_response(
+    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
+    header: bool,
+    filename: str,
+    only: List[str],
+    defer: List[str],
+    verbose: bool,
+    values: bool,
+    pd: bool,
+) -> Tuple[
+    HttpResponse,
+    QuerySet[Dict[Any, Any]],
+    List[str],
+    Optional[List[object]],
+]:
+    # Check for errors
+    error_handler(qs, values, filename)
+
+    # Specify the fields for values() and the header row
+    fields = get_fields(qs.model._meta.local_fields, only, defer, verbose)
+    head = [] if not header else fields[-1]
+    fields = fields[0]
+
+    # Convert QuerySet to list of dicts
+    if not values:
+        qs = qs.values(*fields)
+
+    # Check if the filename already includes the correct file type
+    if filename[-4:] != ".csv":
+        filename += ".csv"
+
+    # Create the response
+    response = HttpResponse(
+        headers={
+            "Content-Type": "text/csv",
+            "Content-Disposition": f"attachment; filename={filename}",
+        },
+    )
+
+    return (response, qs, head, fields) if not pd else (response, qs, head)
+
+
+def qs_to_csv(
+    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
     header: bool = False,
     filename: str = "export.csv",
-    only: list[str] = [],
-    defer: list[str] = [],
+    only: List[str] = [],
+    defer: List[str] = [],
     verbose: bool = True,
     values: bool = False,
-    pd: bool = False,
 ) -> HttpResponse:
     """Converts a QuerySet into a CSV file as an HttpResponse.
 
@@ -123,8 +166,6 @@ def queryset_to_csv(
         Use the verbose_name from the selected fields.
     values : default=False
         Use the QuerySet as-is, must use values(). See ``Notes``.
-    pd : default=False
-        Use pandas.DataFrame().to_csv() instead of csv.DictWriter().
 
 
     Raises
@@ -170,50 +211,61 @@ def queryset_to_csv(
     function. The function transforms all QuerySets into a list of
     dicts w/ values(), which is incompatible with only() and defer().
     """
-    # Check for errors
-    error_handler(qs, values, filename)
 
-    # Specify the fields for values() and the header row
-    fields = get_fields(qs.model._meta.local_fields, only, defer, verbose)
-    headers = fields[-1] if header else []
-    fields = fields[0]
-
-    # Convert QuerySet to list of dicts
-    if not values:
-        qs = qs.values(*fields)
-
-    # Check if the filename already includes the correct file type
-    if filename[-4:] != ".csv":
-        filename += ".csv"
-
-    # Create the response
-    response = HttpResponse(
-        headers={
-            "Content-Type": "text/csv",
-            "Content-Disposition": f"attachment; filename={filename}",
-        },
+    response, qs, headers, fields = build_response(
+        qs, header, filename, only, defer, verbose, values, False
     )
 
     # Build csv file
-    if not pd:
-        from csv import DictWriter
+    from csv import DictWriter
 
-        csv_writer = DictWriter(response, fields)
-        if header and verbose:
-            csv_writer.writerow(dict(zip(fields, headers)))
-        elif header:
-            csv_writer.writeheader()
-        csv_writer.writerows(qs)
+    csv_writer = DictWriter(response, fields)
+    if header and verbose:
+        csv_writer.writerow(dict(zip(fields, headers)))
+    elif header:
+        csv_writer.writeheader()
+    csv_writer.writerows(qs)
+
+    return response
+
+
+def qs_to_csv_pd(
+    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
+    header: bool = False,
+    filename: str = "export.csv",
+    only: List[str] = [],
+    defer: List[str] = [],
+    verbose: bool = True,
+    values: bool = False,
+) -> HttpResponse:
+    """
+    This is a copy of qs_to_csv() that uses pandas.
+
+    This function is identical to qs_to_csv() except that it uses
+    pandas.DataFrame().to_csv() instead of csv.DictWriter().
+
+    Dependencies
+    ------------
+    pandas >= 1.5
+
+    See Also
+    --------
+    qs_to_csv
+    """
+    response, qs, headers = build_response(
+        qs, header, filename, only, defer, verbose, values, True
+    )
+
+    # Build csv file
+    from pandas import DataFrame
+
+    if header and verbose:
+        from csv import writer
+
+        csv_writer = writer(response)
+        csv_writer.writerow(headers)
+        DataFrame(qs).to_csv(response, header=False, index=False, mode="a")
     else:
-        from pandas import DataFrame
-
-        if header and verbose:
-            from csv import writer
-
-            csv_writer = writer(response)
-            csv_writer.writerow(headers)
-            DataFrame(qs).to_csv(response, header=False, index=False, mode="a")
-        else:
-            DataFrame(qs).to_csv(response, header=header, index=False)
+        DataFrame(qs).to_csv(response, header=header, index=False)
 
     return response

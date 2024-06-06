@@ -24,14 +24,14 @@ Full
 ```console
 pip install django-qs2csv[pd]
 ```
-Note: this will install [pandas](https://pandas.pydata.org/), which is used with certain functions. It is not recommended to install the pandas library unless you will use these functions or are already use pandas.
+Note: this will install [pandas](https://pandas.pydata.org/), which is used with ``queryset_to_csv_pd()``. It is not recommended to install the pandas library unless you will use this function or are already use pandas.
 
 ## Usage
 
 views.py
 
 ```shell
-from django_qs2csv import queryset_to_csv
+from django_qs2csv import qs_to_csv
 
 from .models import SampleModel
 
@@ -42,7 +42,7 @@ def export_csv(request):
 
     my_queryset = SampleModel.objects.all()
 
-    response = queryset_to_csv(
+    response = qs_to_csv(
         my_queryset,
         filename="all_sample_models",
     )
@@ -52,12 +52,12 @@ def export_csv(request):
 
 ### Return type
 
-`queryset_to_csv` returns a `django.http.HttpResponse` with the `Content-Type` and `Content-Disposition` headers. Additional headers can be added to the response before returning:
+`qs_to_csv` returns a `django.http.HttpResponse` with the `Content-Type` and `Content-Disposition` headers. Additional headers can be added to the response before returning:
 
 ```shell
 ...
 
-response = queryset_to_csv(my_queryset)
+response = qs_to_csv(my_queryset)
 response["Another-Header"] = "This is another header for the HttpResponse."
 
 ...
@@ -77,13 +77,11 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 
 `values : bool` - Only enable this if your QuerySet was already evaluated (no longer lazy) and called values(). You must ensure your fields are properly selected in the original QuerySet, because this will skip applying the `only` and `defer` parameters. **Default: False**
 
-`pd : bool` - Use `pandas.DataFrame.to_csv()` instead of `csv.DictWriter()` to build the csv file. This may be faster for large QuerySets. Note: this parameter requires installing [pandas](https://pandas.pydata.org/). See [Installation](#installation) for more information. **Default: False**
-
 ### Limitations
 
-If the QuerySet was already evaluated before being passed to `queryset_to_csv` then it will be re-evaluated by the function. Depending on the size of the QuerySet and the database setup, this may add a noticeable delay. It is recommended to monitor the impact of database queries using `django.db.connection.queries` or [django-debug-toolbar](https://django-debug-toolbar.readthedocs.io/en/latest/index.html) during development. If the QuerySet must be evaluated before the function is called, it would be most efficient to use values() with the QuerySet (if possible) then pass `values=True` to `queryset_to_csv`.
+If the QuerySet was already evaluated before being passed to `qs_to_csv` then it will be re-evaluated by the function. Depending on the size of the QuerySet and the database setup, this may add a noticeable delay. It is recommended to monitor the impact of database queries using `django.db.connection.queries` or [django-debug-toolbar](https://django-debug-toolbar.readthedocs.io/en/latest/index.html) during development. If the QuerySet must be evaluated before the function is called, it would be most efficient to use values() with the QuerySet (if possible) then pass `values=True` to `qs_to_csv`.
 
-If your QuerySet uses only() / defer() then you must include those same fields in the `only` / `defer` parameters when calling `queryset_to_csv`. The function transforms all QuerySets into a list of dicts using values(), which is incompatible with only() and defer().
+If your QuerySet uses only() / defer() then you must include those same fields in the `only` / `defer` parameters when calling `qs_to_csv`. The function transforms all QuerySets into a list of dicts using values(), which is incompatible with only() and defer().
 
 `ForeignKey` and `OneToOneField` will always return the primary key, because the function uses `values()`.
 
