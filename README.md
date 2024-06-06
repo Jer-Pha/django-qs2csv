@@ -59,19 +59,19 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 ...
 ```
 
-### Options
+### Parameters
 
-`header` `:bool` - Include a header row with field names. **Default: True**
+`header : bool` - Include a header row with field names. **Default: True**
 
-`filename` `:str` - The name of the exported CSV file. You do not need to include .csv, it will be added once the filename is evaluated. File names can not end in a period, include the symbols (< > : " / \\ | ? *), or be longer than 251 characters (255 w/ ".csv"). **Default: "export"**
+`filename : str` - The name of the exported CSV file. You do not need to include .csv, it will be added once the filename is evaluated. File names can not end in a period, include the symbols (< > : " / \\ | ? *), or be longer than 251 characters (255 w/ ".csv"). **Default: "export"**
 
-`only` `:list[str]` - List the field names that you would like to include in the exported file. An empty list will include all fields, other than those in `defer`. Field names listed in both `only` and `defer` will not be included. See the note in the [Limitations](#limitations) section for details how this works with a QuerySet that calls only() / defer(). **Default: []**
+`only : list[str]` - List the field names that you would like to include in the exported file. An empty list will include all fields, other than those in `defer`. Field names listed in both `only` and `defer` will not be included. See the note in the [Limitations](#limitations) section for details how this works with a QuerySet that calls only() / defer(). **Default: []**
 
-`defer` `:list[str]` - List the field names that you do not want to include in the exported file. An empty list will include all fields, or just those mentioned in `only`. Field names listed in both `only` and `defer` will not be included. See the note in the [Limitations](#limitations) section for details how this works with a QuerySet that calls only() / defer(). **Default: []**
+`defer : list[str]` - List the field names that you do not want to include in the exported file. An empty list will include all fields, or just those mentioned in `only`. Field names listed in both `only` and `defer` will not be included. See the note in the [Limitations](#limitations) section for details how this works with a QuerySet that calls only() / defer(). **Default: []**
 
-`values` `:bool` - Only enable this if your QuerySet was already evaluated (no longer lazy) and called values(). You must ensure your fields are properly selected in the original QuerySet, because this will skip applying the `only` and `defer` parameters. **Default: False**
+`values : bool` - Only enable this if your QuerySet was already evaluated (no longer lazy) and called values(). You must ensure your fields are properly selected in the original QuerySet, because this will skip applying the `only` and `defer` parameters. **Default: False**
 
-`pd` `:bool` - Use `pandas.DataFrame.to_csv()` instead of `csv.DictWriter()` to build the csv file. This may be faster for large QuerySets. Note: if you installed the package with the `--no-deps` flag then you must ensure pandas is also installed. **Default: False**
+`pd : bool` - Use `pandas.DataFrame.to_csv()` instead of `csv.DictWriter()` to build the csv file. This may be faster for large QuerySets. Note: if you installed the package with the `--no-deps` flag then you must ensure pandas is also installed. **Default: False**
 
 ### Limitations
 
