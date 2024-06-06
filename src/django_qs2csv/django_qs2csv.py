@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from django.http import HttpResponse
 from django.db.models import QuerySet
@@ -8,7 +8,7 @@ def error_handler(
     qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
     values: bool,
     filename: str,
-) -> NoReturn:
+) -> None:
     """Checks for errors/warnings in `queryset_to_csv`."""
     # Ensure `values` is only being used with a QuerySet with .values()
     if values and not issubclass(qs[0].__class__, dict):
@@ -87,10 +87,10 @@ def get_fields(
 
 def build_response(
     qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
-    header: bool,
     filename: str,
     only: List[str],
     defer: List[str],
+    header: bool,
     verbose: bool,
     values: bool,
     pd: bool,
@@ -129,10 +129,10 @@ def build_response(
 
 def qs_to_csv(
     qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
-    header: bool = False,
     filename: str = "export.csv",
     only: List[str] = [],
     defer: List[str] = [],
+    header: bool = False,
     verbose: bool = True,
     values: bool = False,
 ) -> HttpResponse:
@@ -231,10 +231,10 @@ def qs_to_csv(
 
 def qs_to_csv_pd(
     qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
-    header: bool = False,
     filename: str = "export.csv",
     only: List[str] = [],
     defer: List[str] = [],
+    header: bool = False,
     verbose: bool = True,
     values: bool = False,
 ) -> HttpResponse:
