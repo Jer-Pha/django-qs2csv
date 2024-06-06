@@ -8,19 +8,23 @@ A simple package to convert a Django QuerySet to a CSV file through an HttpRespo
 
 * Python >= 3.8
 * Django >= 3.2
+
+### Optional Dependencies
+
 * pandas >= 1.5
 
 ### Installation
 
-Full
+Recommended
 ```console
 pip install django-qs2csv
 ```
 
-No dependencies
+Full
 ```console
-pip install --no-deps django-qs2csv
+pip install django-qs2csv[pd]
 ```
+Note: this will install [pandas](https://pandas.pydata.org/), which is used with certain functions. It is not recommended to install the pandas library unless you will use these functions or are already use pandas.
 
 ## Usage
 
@@ -71,7 +75,7 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 
 `values : bool` - Only enable this if your QuerySet was already evaluated (no longer lazy) and called values(). You must ensure your fields are properly selected in the original QuerySet, because this will skip applying the `only` and `defer` parameters. **Default: False**
 
-`pd : bool` - Use `pandas.DataFrame.to_csv()` instead of `csv.DictWriter()` to build the csv file. This may be faster for large QuerySets. Note: if you installed the package with the `--no-deps` flag then you must ensure pandas is also installed. **Default: False**
+`pd : bool` - Use `pandas.DataFrame.to_csv()` instead of `csv.DictWriter()` to build the csv file. This may be faster for large QuerySets. Note: this parameter requires installing [pandas](https://pandas.pydata.org/). See [Installation](#installation) for more information. **Default: False**
 
 ### Limitations
 
