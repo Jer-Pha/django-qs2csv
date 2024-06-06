@@ -65,6 +65,8 @@ response["Another-Header"] = "This is another header for the HttpResponse."
 
 ### Parameters
 
+`qs : QuerySet` - The QuerySet to be exported as a CSV file. This can be passed as QuerySet\[object], QuerySet\[dict] (values()), or QuerySet\[list\[list]] (values_list()). See the note in the [Limitations](#limitations) about QuerySet evaluation. **Required**
+
 `header : bool` - Include a header row with field names. **Default: False**
 
 `filename : str` - The name of the exported CSV file. You do not need to include .csv, it will be added once the filename is evaluated. File names can not end in a period, include the symbols (< > : " / \\ | ? *), or be longer than 251 characters (255 w/ ".csv"). **Default: "export"**
