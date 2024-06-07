@@ -213,7 +213,7 @@ def qs_to_csv(
     """
 
     response, qs, headers, fields = build_response(
-        qs, header, filename, only, defer, verbose, values, False
+        qs, filename, only, defer, header, verbose, values, False
     )
 
     # Build csv file
@@ -253,7 +253,7 @@ def qs_to_csv_pd(
     qs_to_csv
     """
     response, qs, headers = build_response(
-        qs, header, filename, only, defer, verbose, values, True
+        qs, filename, only, defer, header, verbose, values, True
     )
 
     # Build csv file
