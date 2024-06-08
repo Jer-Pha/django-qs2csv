@@ -44,14 +44,16 @@ class TestModel(models.Model):
 
     pk_field = models.BigAutoField(primary_key=True, verbose_name="Big Auto")
     char_field = models.CharField(
-        max_length=255, default=get_random_string, verbose_name="Chars"
+        max_length=255, default=random_string, verbose_name="Chars"
     )
     big_int_field = models.BigIntegerField(
         default=random_int, verbose_name="Big Integer"
     )
     boolean_field = models.BooleanField(default=True, verbose_name="Boolean")
     date_field = models.DateField(auto_now_add=True, verbose_name="Date")
-    datetime_field = models.DateTimeField(auto_now_add=True, verbose_name="DateTime")
+    datetime_field = models.DateTimeField(
+        auto_now_add=True, verbose_name="DateTime"
+    )
     decimal_field = models.DecimalField(
         max_digits=10,
         decimal_places=2,
