@@ -57,4 +57,4 @@ Repository = "https://github.com/Jer-Pha/django-qs2csv"
 Issues = "https://github.com/Jer-Pha/django-qs2csv/issues"
 
 [tool.black]
-line-length = 88
+line-length = 79
