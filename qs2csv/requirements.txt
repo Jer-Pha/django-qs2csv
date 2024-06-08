@@ -1,0 +1,6 @@
+Django>=3.2
+pandas>=1.5
+coverage>=7.5.3
+black>=24.4
+pre-commit>=3.7.1
+tox>=4.0
