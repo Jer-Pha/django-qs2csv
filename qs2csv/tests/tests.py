@@ -98,10 +98,14 @@ class AllFunctionsTest(TestCase):
 
     def test_evaluated_warning(self):
         """Tests pre-evaluated QuerySet warnings."""
+        qs = self.qs.values()
+        len(self.qs)
         with self.assertWarns(ResourceWarning):
-            qs_to_csv(list(self.qs))
+            qs_to_csv(self.qs)
+
+        len(qs)
         with self.assertWarns(ResourceWarning):
-            qs_to_csv_pd(list(self.qs.values()))
+            qs_to_csv_pd(qs)
 
     def test_only_param(self):
         """Tests a standard export with only and defer parameters."""
