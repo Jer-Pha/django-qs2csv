@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["qs2csv\\src"]
-include = ["django_qs2csv"]
+include = ["qs2csv"]
 
 [project]
 name = "django-qs2csv"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
     "django>=3.2",
     'importlib-metadata; python_version<"3.10"',
@@ -19,7 +19,7 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.9"
-keywords = ["csv", "export", "pandas", "httpresponse", "http response", "django"]
+keywords = ["django", "csv", "export", "httpresponse", "http response", "pandas"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -53,7 +53,7 @@ classifiers = [
 pd = ["pandas>=1.5"]
 
 [project.urls]
-Repository = "https://github.com/Jer-Pha/django-qs2csv"
+Homepage = "https://github.com/Jer-Pha/django-qs2csv"
 Issues = "https://github.com/Jer-Pha/django-qs2csv/issues"
 
 [tool.black]
