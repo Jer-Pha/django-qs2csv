@@ -4,23 +4,12 @@ from django.http import HttpResponse
 from django.db.models import QuerySet
 
 
-def error_handler(
-    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
-    values: bool,
-    filename: str,
-) -> None:
-    """Checks for errors/warnings in `queryset_to_csv`."""
-    # Ensure `values` is only being used with a QuerySet with .values()
-    if values and not issubclass(qs[0].__class__, dict):
-        raise TypeError(
-            "`values=True` only works with a QuerySet that utilizes .values()."
-            " QuerySets for model objects or values_list() are not compatible."
-        )
-
-    # Ensure `filename` is properly formatted
-    filename = filename.strip()
-    if filename != "export":
+def validate_filename(filename: str) -> str:
+    """Ensures `filename` is properly formatted."""
+    # Only process `filename` if it is not the default value.
+    if filename != "export.csv":
         SYMBOLS = ("<", ">", ":", '"', "/", "\\", "|", "?", "*")
+        filename = filename.strip()
 
         if len(filename) > 251 or not filename:
             raise ValueError(
@@ -35,34 +24,35 @@ def error_handler(
         elif filename[-1] == ".":
             raise ValueError(f"`filename` can not end in a period.")
 
-    # Check if the QuerySet has been evaluated:
-    if qs._result_cache is not None:
-        from warnings import warn
+    if filename[-4:] != ".csv":
+        filename += ".csv"
 
-        warning = (
-            "The QuerySet was already evaluated before being passed to this"
-            " function. This will result in another database hit converting"
-            " the QuerySet to a list of dicts by using values()."
-        )
-        if qs and not values and issubclass(qs[0].__class__, dict):
-            warning += (
-                "\nTo avoid this, pass `values=True` as a parameter. This will"
-                " use the QuerySet as-is. Note: `values` overrides the `only`"
-                " and `defer` params, which means fields must be filtered"
-                " before the QuerySet is passed to this function.\nThis can"
-                " only be done if you are using values()."
-            )
-        warn(warning, ResourceWarning)
+    return filename
 
 
-def get_fields(
+def create_response(filename: str) -> HttpResponse:
+    """Creates HttpResponse with necessary headers."""
+    return HttpResponse(
+        headers={
+            "Content-Type": "text/csv",
+            "Content-Disposition": (
+                f"attachment; filename={validate_filename(filename)}"
+            ),
+        },
+    )
+
+
+def set_fields(
     fields: List[object],
     only: List[str],
     defer: List[str],
-    verbose: bool,
-) -> List[List[str]]:
-    """Determines which fields to include in the response."""
-    # Remove ManyToManyField (unsupported)
+) -> List[object]:
+    """Determines which fields to include in the response.
+
+    Removes ManyToManyField (unsupported) and applies `only` and
+    `defer` filters then returns a list of field objects.
+
+    """
     if only:
         # `defer` overrides `only`
         only = [f for f in only if f not in defer]
@@ -74,57 +64,75 @@ def get_fields(
     else:
         fields = [f for f in fields if not f.many_to_many]
 
-    # Convert fields to field name strings
-    return (
-        (
-            [f.name for f in fields],
-            [f.verbose_name for f in fields],
-        )
-        if verbose
-        else ([f.name for f in fields],)
-    )
+    return fields
 
 
-def build_response(
-    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
+def get_fields(
+    fields: List[object],
+    header: bool,
+    verbose: bool,
+) -> Tuple[List[str], Optional[List[str]]]:
+    """Gets header then converts fields to a list of strings."""
+    if header and verbose:
+        headers = [f.verbose_name for f in fields]
+    elif header:
+        headers = [f.name for f in fields]
+    else:
+        headers = None
+
+    return [f.name for f in fields], headers
+
+
+def qs_to_csv_core(
+    qs: Union[
+        QuerySet[object],
+        QuerySet[Dict[Any, Any]],
+        QuerySet[List[Any]],
+    ],
     filename: str,
-    only: List[str],
-    defer: List[str],
+    only: List[Optional[str]],
+    defer: List[Optional[str]],
+) -> Tuple[HttpResponse, List[object]]:
+    """Core functionality of all package functions."""
+    fields = set_fields(qs.model._meta.local_fields, only, defer)
+    return create_response(filename), fields
+
+
+def qs_to_values(
+    qs: Union[
+        QuerySet[object],
+        QuerySet[Dict[Any, Any]],
+        QuerySet[List[Any]],
+    ],
+    filename: str,
+    only: List[Optional[str]],
+    defer: List[Optional[str]],
     header: bool,
     verbose: bool,
     values: bool,
-    pd: bool,
+    pd: bool = False,
 ) -> Tuple[
-    HttpResponse,
     QuerySet[Dict[Any, Any]],
+    HttpResponse,
     List[str],
-    Optional[List[object]],
+    Optional[List[str]],
 ]:
-    # Check for errors
-    error_handler(qs, values, filename)
+    """Converts QuerySet to a list of dicts using values()."""
+    response, fields = qs_to_csv_core(qs, filename, only, defer)
+    fields, headers = get_fields(fields, header, verbose)
 
-    # Specify the fields for values() and the header row
-    fields = get_fields(qs.model._meta.local_fields, only, defer, verbose)
-    head = [] if not header else fields[-1]
-    fields = fields[0]
-
-    # Convert QuerySet to list of dicts
     if not values:
         qs = qs.values(*fields)
+    elif not issubclass(qs[0].__class__, dict):
+        raise TypeError(
+            "``values=True`` only works with a QuerySet that utilizes"
+            " .values(). QuerySets for model objects or values_list()"
+            " are not compatible."
+        )
 
-    # Check if the filename already includes the correct file type
-    if filename[-4:] != ".csv":
-        filename += ".csv"
-
-    # Create the response
-    response = HttpResponse(
-        headers={
-            "Content-Type": "text/csv",
-            "Content-Disposition": f"attachment; filename={filename}",
-        },
+    return (
+        (qs, response, headers, fields) if not pd else (qs, response, headers)
     )
-
-    return (response, qs, head, fields) if not pd else (response, qs, head)
 
 
 def qs_to_csv(
@@ -146,19 +154,19 @@ def qs_to_csv(
     ----------
     qs
         The QuerySet that will be converted to a CSV file.
-    header : default=False
-        Add/remove a header row of field names in the response.
     filename : default="export.csv"
         The file name for the exported file. Does not need .csv suffix.
     only : default=[]
         List of specific fields to include in the response.
     defer : default=[]
         List of specific fields not to include in the response
+    header : default=False
+        Add/remove a header row of field names in the response.
 
     Returns
     -------
     HttpResponse
-        Includes the Content-Type and Content-Disposition headers.
+        Includes the "Content-Type" and "Content-Disposition" headers.
 
     Other Parameters
     ----------
@@ -167,23 +175,17 @@ def qs_to_csv(
     values : default=False
         Use the QuerySet as-is, must use values(). See ``Notes``.
 
+    See Also
+    --------
+    qs_to_csv_pd()
+    qs_to_csv_rel_str()
 
     Raises
     ------
     ValueError
         If `filename` is not formatted correctly.
     TypeError
-        If `values=True` and the QuerySet did not call values().
-
-    Warns
-    -----
-    ResourceWarning
-        If the QuerySet will be evaluated more than once.
-
-    See Also
-    --------
-    error_handler : Checks for errors/warnings in this function.
-    get_fields : Determines which fields to include in the response.
+        If ``values=True`` and the QuerySet did not call values().
 
     Notes
     -----
@@ -192,10 +194,10 @@ def qs_to_csv(
 
     ManyToManyField is not supported.
 
-    `headers` includes Content-Type and Content-Disposition. To add
-    headers, set the new header as an index key and assign a value to
-    it, the same as a dictionary. These headers can also be deleted
-    (not recommended).
+    The returned HttpResponse includes headers Content-Type and
+    Content-Disposition. To add headers, set the new header as an index
+    key and assign a value to it, the same as a dictionary. These
+    headers can also be deleted (not recommended).
 
     If the QuerySet was already evaluated before being passed to the
     function then it will be re-evaluated. Depending on the size of the
@@ -204,16 +206,17 @@ def qs_to_csv(
     django.db.connection.queries or django-debug-toolbar during
     development. If the QuerySet must be evaluated before the function
     is called, it would be most efficient to use values() with the
-    QuerySet (if possible) then pass `values=True`.
+    QuerySet (if possible) then pass ``values=True``.
 
     If your QuerySet uses only() / defer() then you must include those
     same fields in the `only` / `defer` parameters when calling the
     function. The function transforms all QuerySets into a list of
     dicts w/ values(), which is incompatible with only() and defer().
-    """
+    This also applies if you specify fields in values() or values_list().
 
-    response, qs, headers, fields = build_response(
-        qs, filename, only, defer, header, verbose, values, False
+    """
+    qs, response, headers, fields = qs_to_values(
+        qs, filename, only, defer, header, verbose, values
     )
 
     # Build csv file
@@ -238,8 +241,7 @@ def qs_to_csv_pd(
     verbose: bool = True,
     values: bool = False,
 ) -> HttpResponse:
-    """
-    This is a copy of qs_to_csv() that uses pandas.
+    """This is a copy of qs_to_csv() that uses the pandas library.
 
     This function is identical to qs_to_csv() except that it uses
     pandas.DataFrame().to_csv() instead of csv.DictWriter().
@@ -251,9 +253,10 @@ def qs_to_csv_pd(
     See Also
     --------
     qs_to_csv
+
     """
-    response, qs, headers = build_response(
-        qs, filename, only, defer, header, verbose, values, True
+    qs, response, headers = qs_to_values(
+        qs, filename, only, defer, header, verbose, values, pd=True
     )
 
     # Build csv file
@@ -267,5 +270,118 @@ def qs_to_csv_pd(
         DataFrame(qs).to_csv(response, header=False, index=False, mode="a")
     else:
         DataFrame(qs).to_csv(response, header=header, index=False)
+
+    return response
+
+
+def qs_to_csv_rel_str(
+    qs: Union[QuerySet[object], QuerySet[Dict[Any, Any]], QuerySet[List[Any]]],
+    filename: str = "export.csv",
+    only: List[str] = [],
+    defer: List[str] = [],
+    header: bool = False,
+    verbose: bool = True,
+    values: bool = False,
+) -> HttpResponse:
+    """This is a copy of qs_to_csv() that prints __string__ for related
+    fields ForeignKey and OneToOneField instead of their primary keys.
+
+    This function should not be used if the model has neither a
+    ForeignKey nor OneToOneField. ManyToManyField is not supported.
+
+    Other Parameters
+    ----------
+    values : default=False
+        Set as True if the QuerySet is passed after calling values() or
+        values_list(). This will convert the QuerySet back to a list of
+        model objects, instead of a list of dicts/lists. See ``Notes``
+        for an important warning about performance.
+
+    See Also
+    --------
+    qs_to_csv
+
+    Raises
+    ------
+    ValueError
+        If the values()/values_list() QuerySet is too large to convert.
+    TypeError
+        If values=False and the QuerySet called values()/values_list().
+
+    Notes
+    -----
+    Passing ``values=True`` to this function will create a new query,
+    checking for primary keys (PKs) that are in a list of all PKs from
+    your original QuerySet. **This will add significant time if your
+    QuerySet is large and will potentially not work**, depending on the
+    size of your QuerySet and your database's capabilities.
+
+    It is recommended to avoid this by not using values() or
+    values_list() when calling this function. Note: if you make this
+    change, ensure `values` is False.
+
+    """
+    response, fields = qs_to_csv_core(qs, filename, only, defer)
+
+    if values:
+        # See `Notes` in docstring for critical performance warning
+        model = qs.model
+        pk = model._meta.pk.name
+        qs = list(qs.values())
+        if qs:
+            related_fields = [
+                f.name for f in fields if f.many_to_one or f.one_to_one
+            ]
+            fields, headers = get_fields(fields, header, verbose)
+            qs = (
+                model.objects.select_related(*related_fields)
+                .only(*fields)
+                .filter(pk__in=(d[pk] for d in qs))
+            )
+    else:
+        fields, headers = get_fields(fields, header, verbose)
+
+    # Build csv file
+    from csv import writer
+    from django.db import reset_queries
+
+    csv_writer = writer(response)
+    if header:
+        csv_writer.writerow(headers)
+
+    try:
+        for obj in qs:
+            row = []
+
+            for field in fields:
+                data = getattr(obj, field)
+                if callable(data):  # pragma: no cover
+                    data = data()
+                data = (
+                    str(data, encoding="utf-8")
+                    if isinstance(data, bytes)
+                    else str(data)
+                )
+                row.append(data)
+                reset_queries()
+
+            csv_writer.writerow(row)
+    except Exception as e:
+        msg = str(e)
+        if not values and "object has no attribute" in msg:
+            raise TypeError(
+                msg
+                + " - The QuerySet was passed with values() or values_list()"
+                " without specifying values=True."
+            )
+        elif values and "too many SQL variables" in msg:  # pragma: no cover
+            raise ValueError(
+                msg + " - The original QuerySet was too large to convert from"
+                " values()/values_list() to a QuerySet of model objects."
+                " This can be resolved by decreasing the size of your"
+                " QuerySet or by not calling values/values_list() before"
+                " calling this function then setting values=False."
+            )
+        raise e  # pragma: no cover
 
     return response
