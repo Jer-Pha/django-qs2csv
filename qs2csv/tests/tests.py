@@ -102,7 +102,7 @@ class AllFunctionsTest(TestCase):
         with self.assertWarns(ResourceWarning):
             qs_to_csv(self.qs)
         with self.assertWarns(ResourceWarning):
-            qs_to_csv_pd(self.qs)
+            qs_to_csv_pd(self.qs.values())
 
     def test_only_param(self):
         """Tests a standard export with only and defer parameters."""
