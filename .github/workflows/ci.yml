@@ -19,10 +19,5 @@ jobs:
 
       - name: Install CI
         run: |
-            pip install "tox>=4.0,<5.0"
+            pip install "tox>=4.0"
             tox
-        # python -m pip install --upgrade pip
-        # pip install -r requirements.txt
-    # - name: Run Tests
-    #   run: |
-    #     python manage.py test
