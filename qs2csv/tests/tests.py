@@ -24,8 +24,8 @@ class AllFunctionsTest(TestCase):
 
     def test_model_str(self):
         """Tests model __str__ accuracy."""
-        self.assertEqual(str(self.fkm), f"FK Model #{self.pk}")
-        self.assertEqual(str(self.afm), f"AF Model #{self.pk}")
+        self.assertEqual(str(self.fkm), f"FK Model #{self.fkm.pk}")
+        self.assertEqual(str(self.afm), f"AF Model #{self.afm.pk}")
 
     def test_qs_to_csv(self):
         """Tests a standard export with default parameters.
