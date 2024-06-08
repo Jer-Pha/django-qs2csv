@@ -24,8 +24,8 @@ class AllFunctionsTest(TestCase):
 
     def test_model_str(self):
         """Tests model __str__ accuracy."""
-        self.assertEqual(self.fkm.pk, "FK Model #{self.pk}")
-        self.assertEqual(self.afm.pk, "AF Model #{self.pk}")
+        self.assertEqual(str(self.fkm.pk), "FK Model #{self.pk}")
+        self.assertEqual(str(self.afm.pk), "AF Model #{self.pk}")
 
     def test_qs_to_csv(self):
         """Tests a standard export with default parameters.
@@ -65,20 +65,28 @@ class AllFunctionsTest(TestCase):
 
     def test_error_handler(self):
         """Tests error_handler() when ``values = True``."""
-        self.assertRaises(TypeError, qs_to_csv(self.qs))
-        self.assertRaises(TypeError, qs_to_csv_pd(self.qs))
+        with self.assertRaises(TypeError):
+            qs_to_csv(self.qs, values=True)
+        with self.assertRaises(TypeError):
+            qs_to_csv_pd(self.qs, values=True)
 
     def test_filename_format(self):
         """Tests file formatting errors."""
         f1 = ("a") * 252
-        self.assertRaises(ValueError, qs_to_csv(self.qs, filename=f1))
-        self.assertRaises(ValueError, qs_to_csv_pd(self.qs, filename=f1))
+        with self.assertRaises(ValueError):
+            qs_to_csv(self.qs, filename=f1)
+        with self.assertRaises(ValueError):
+            qs_to_csv_pd(self.qs, filename=f1)
         f2 = "1<2.csv"
-        self.assertRaises(ValueError, qs_to_csv(self.qs, filename=f2))
-        self.assertRaises(ValueError, qs_to_csv_pd(self.qs, filename=f2))
+        with self.assertRaises(ValueError):
+            qs_to_csv(self.qs, filename=f2)
+        with self.assertRaises(ValueError):
+            qs_to_csv_pd(self.qs, filename=f2)
         f3 = "file."
-        self.assertRaises(ValueError, qs_to_csv(self.qs, filename=f3))
-        self.assertRaises(ValueError, qs_to_csv_pd(self.qs, filename=f3))
+        with self.assertRaises(ValueError):
+            qs_to_csv(self.qs, filename=f3)
+        with self.assertRaises(ValueError):
+            qs_to_csv_pd(self.qs, filename=f3)
 
         response = qs_to_csv(self.qs, filename="x", header=True)
         self.assertIn(".csv", response.headers["Content-Disposition"])
@@ -91,8 +99,10 @@ class AllFunctionsTest(TestCase):
     def test_evaluated_warning(self):
         """Tests pre-evaluated QuerySet warnings."""
         list(self.qs)
-        self.assertWarns(ResourceWarning, qs_to_csv(self.qs))
-        self.assertWarns(ResourceWarning, qs_to_csv_pd(self.qs))
+        with self.assertWarns(ResourceWarning):
+            qs_to_csv(self.qs)
+        with self.assertWarns(ResourceWarning):
+            qs_to_csv_pd(self.qs)
 
     def test_only_param(self):
         """Tests a standard export with only and defer parameters."""
@@ -133,7 +143,7 @@ class AllFunctionsTest(TestCase):
         body_rows = list(cvs_reader)
         header_row = body_rows.pop(0)
         self.assertIn("Text", header_row)
-        self.assertEqual(len(body_rows[0]), 1)
+        self.assertEqual(len(body_rows[0]), 4)
 
     def test_defer_param(self):
         """Tests a pandas export with only and verbose parameters."""
@@ -146,7 +156,7 @@ class AllFunctionsTest(TestCase):
 
     def test_defer_param_pd(self):
         """Tests a pandas export with defer parameter."""
-        defer = ["duration_field", "many_to_many_field", "many_to_many_field"]
+        defer = ["duration_field", "many_to_many_field", "date_field"]
         response = qs_to_csv(self.qs.values(), defer=defer)
         content = response.content.decode("utf-8")
         cvs_reader = reader(StringIO(content))
