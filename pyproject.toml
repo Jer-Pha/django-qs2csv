@@ -2,9 +2,13 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["qs2csv\\src"]
+include = ["django_qs2csv"]
+
 [project]
 name = "django-qs2csv"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
     "django>=3.2",
     'importlib-metadata; python_version<"3.10"',
