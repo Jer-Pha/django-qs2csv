@@ -29,7 +29,8 @@ def error_handler(
             )
         elif [i for i in SYMBOLS if i in filename]:
             raise ValueError(
-                "`filename` can not contain these characters:" f" {' '.join(SYMBOLS)}"
+                "`filename` can not contain these characters:"
+                f" {' '.join(SYMBOLS)}"
             )
         elif filename[-1] == ".":
             raise ValueError(f"`filename` can not end in a period.")
@@ -67,7 +68,9 @@ def get_fields(
         only = [f for f in only if f not in defer]
         fields = [f for f in fields if f.name in only and not f.many_to_many]
     elif defer:
-        fields = [f for f in fields if f.name not in defer and not f.many_to_many]
+        fields = [
+            f for f in fields if f.name not in defer and not f.many_to_many
+        ]
     else:
         fields = [f for f in fields if not f.many_to_many]
 
