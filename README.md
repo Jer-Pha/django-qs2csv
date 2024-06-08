@@ -6,7 +6,7 @@ A simple package to convert a Django QuerySet to a CSV file through an HttpRespo
 
 ### Prerequisites
 
-* Python >= 3.8
+* Python >= 3.9
 * Django >= 3.2
 
 ### Optional Dependencies
